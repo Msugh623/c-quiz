@@ -64,11 +64,14 @@ int main () {
 
     // Questions To Array
     for (int i = 0; i < sizeof(tempQ); i++) {
+        if (tempQ[i] == '\n') {
+            continue;  
+        }
         buff[charCount] = tempQ[i];
+        buff[charCount+1] = '\0';
         charCount++;
         // printf("%c", tempQ[i]);
-        if (tempQ[i] == ',' || charCount > 64)
-        {
+        if (tempQ[i] == ',' || charCount > 64) {
             charCount = 0;
             if(!strlen(buff)){
                 maxQLength = qCount;

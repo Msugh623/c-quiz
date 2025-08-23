@@ -1,3 +1,4 @@
 What is the name of my cat?,
 Where is Nigeria?,
-Where is Wannune?;
+Where is Wannune?,
+Is United state in europe?
