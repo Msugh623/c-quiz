@@ -1,163 +1,140 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <time.h>
 #include <ctype.h>
 
-typedef char empty[255];
+char canvas[3][3];
+void init();
+void play();
+void checkWinner();
+void printBoard();
+int useGameOver();
+const char PLAYER = 'X';
+const char AI = 'O';
+const char space = ' ';
+char winner = ' ';
+int plays;
+int wins;
 
-int readFile(FILE *file, char data[],int maxLines) {
-    int maxStreamLen = 1024 * 5 ;
-    int lineCount = 0;
-    if (file == NULL)
-    {
-        return 1;
-    }
-    char buff[2048];
-    while (fgets(buff, 255, file) !=NULL)
-    {
-        lineCount++;
-        if (lineCount > maxLines) {
-            break;
-        }
-        if(strlen(data)>=maxStreamLen){
-            printf("WARNING: max stream length %d exceeded... reader shall exit");
-            break;
-            return 0;
-        }
-        strcat(data, buff);
-    }
-
+int main() {
+    init();
+    do {
+        printBoard();
+        play();
+        checkWinner();
+    } while (winner == space);
+    useGameOver();
     return 0;
 }
 
-int main () {
-    int maxQLength = 20;
-    char questionsDir[] = "data/questions.txt";
-    char schemeDir[] = "data/qscheme.txt";
-    char qoptionsDir[] = "data/qoptions.txt";
-    char optCharIndexes[] = "ABCDE";
-    char questions [20][64] = {};
-    char options[20][5][64] ={};
-    char scheme[20];
-    int score = 0;
-    int qSize = sizeof(questions)/sizeof(questions[1]);
-    FILE *qquestionsFile = fopen(questionsDir,"r");
-    FILE *qoptionsFile = fopen(qoptionsDir,"r");
-    FILE *qschemeFile = fopen(schemeDir,"r");
-    if(qquestionsFile==NULL||qoptionsFile==NULL||qschemeFile==NULL){
-        printf("Incomplete assets... Please ensure all 3 [%s & %s & %s] files exist.", questionsDir, qoptionsDir, schemeDir);
-        exit(1);
-    }
-    char tempQ[1024*5] = "";
-    char tempO[1024*5] = "";
-    int qReadStatus = readFile(qquestionsFile, tempQ,20);
-    int oReatStatus=readFile(qoptionsFile, tempO,20);
-    int sReadStatus=readFile(qschemeFile, scheme, 1);
-    if (qReadStatus + oReatStatus + sReadStatus > 0)
+void init () {
+    plays++;
+    for (int i = 0; i < 3; i++)
     {
-        printf("Read data files failed... exiting.");
-        exit(1);
+        for (int j = 0; j < 3; j++) {
+            canvas[i][j] = space;
+        }
     }
-    char buff[255] = "";
-    int charCount = 0;
-    int qCount = 0;
+}
 
-    // Questions To Array
-    for (int i = 0; i < sizeof(tempQ); i++) {
-        if (tempQ[i] == '\n') {
-            continue;  
-        }
-        buff[charCount] = tempQ[i];
-        buff[charCount+1] = '\0';
-        charCount++;
-        // printf("%c", tempQ[i]);
-        if (tempQ[i] == ',' || charCount > 64) {
-            charCount = 0;
-            if(!strlen(buff)){
-                maxQLength = qCount;
-                qSize = qCount;
-                break;
-            }
-            strcpy(questions[qCount],buff);
-            strcpy(buff,"");
-            qCount++;
-            if (qCount>maxQLength||(!tempQ[i]&&!tempQ[i+1]&&!tempQ[i+2])){
-                break;
-            }
-        }
-        qSize = sizeof(questions) / sizeof(questions[1]);
+void printBoard() {
+    printf(" %c | %c | %c \n",canvas[0][0],canvas[0][1],canvas[0][2]);
+    printf("---|---|---\n");
+    printf(" %c | %c | %c \n",canvas[1][0],canvas[1][1],canvas[1][2]);
+    printf("---|---|---\n");
+    printf(" %c | %c | %c \n",canvas[2][0],canvas[2][1],canvas[2][2]);
+}
+
+void play () {
+    int clientX;
+    int clientY;
+    // user play
+    printf("\rChoose your spot across the board [left to right] (1-3):");
+    scanf("%d", &clientX);
+    clientX--;
+    printf("\rChoose your spot along the board [top to bottom] (1-3):");
+    scanf("%d", &clientY);
+    clientY--;
+    if (canvas[clientY][clientX]==space) {
+        canvas[clientY][clientX] = PLAYER;
+    } else {
+        printf("Invalid Spot\n");
     }
 
-    qCount = 0;
-    charCount = 0;
-    int optCount = 0;
-    char optBuff[64]="";
-    for (int i = 0; i < strlen(tempO); i++) {
-        if (tempO[i] == ',' || charCount >= 64) {
-            strcpy(options[qCount][optCount], optBuff);
-            optBuff[0] = '\0';
-            optCount++;
-            charCount = 0;
-            continue;
+    int aiX;
+    int aiY;
+    // AI play
+    srand(time(0));
+    aiX = rand() % 3;
+    aiY = rand() % 3;
+    int stop=0;
+    if (canvas[aiY][aiX]==space) {
+        canvas[aiY][aiX] = AI;
+    } else {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (canvas[i][j]==space) {
+                    canvas[i][j]=AI;
+                    stop=1;
+                    break;
+                }
+                if (stop) {
+                    break;
+                }
+            }
+            if (stop) {
+               break;
+            }
         }
-        if (tempO[i] == ';'||optCount>sizeof(optCharIndexes)) {
-            strcpy(options[qCount][optCount], optBuff);
-            qCount++;
-            charCount = 0;
-            optCount = 0;
-            continue;
-        }
-        if (qCount>maxQLength)
-        {
-            break;
-        }
-        if(tempO[i]=='\n') {
-            continue;
-        }
-        optBuff[charCount] = tempO[i];
-        optBuff[charCount + 1] = '\0';
         
-        charCount++;
     }
-    qCount = 0;
-    charCount = 0;
-
-    for (int i = 0; i < qSize; i++) {
-        if (!strlen(questions[i])){
-            qSize = i;
-            break;
-        }
-        printf("***********************************\n");
-        printf("%d. %s\n", i+1, questions[i]);
-        for (int j = 0; j < sizeof(options[0])/sizeof(options[0][0]); j++) {
-            if(!strlen(options[i][j])){
-                break;
-            }
-            printf("(%c): %s\n", optCharIndexes[j], options[i][j]);
-        }
-        printf(": ");
-        char uInput[]="F";
-        scanf("%s",uInput);
-        // scanf("%c");
-        if (toupper(scheme[i]) == toupper(uInput[0]))
-        {
-            printf("**|  %c %s %c |**",toupper(scheme[i]),"👍",toupper(uInput[0]));
-            score++;
-        }
-        else
-        {
-            if(uInput[0]=='k' || uInput[0]=='q'){
-                printf("Terminating process...\n");
-                qSize = i;
-                break;
-            }
-            printf("**|  %c %s %c |**",toupper(scheme[i]),"👎",toupper(uInput[0]));
-        }
-        printf("\n");
-    }
-    printf("***********************************\n\n");
-    printf("You scored: %d/%d",score,qSize);
-    printf("\n\n***********************************\n");
-    return 0;
 }
 
+void checkWinner(){
+    if (canvas[0][0]==canvas[0][1]&&canvas[0][0]==canvas[0][2]) {
+        winner = canvas[0][0];
+    }
+    else if (canvas[1][0] == canvas[1][1] && canvas[1][0] == canvas[1][2]){
+        winner = canvas[1][0];
+    } else if (canvas[2][0] == canvas[2][1] && canvas[2][0] == canvas[2][2]) {
+        winner = canvas[2][0];
+    } else if (canvas[0][0] == canvas[1][1] && canvas[0][0] == canvas[2][2]) {
+        winner = canvas[0][0];
+    } else if (canvas[0][2] == canvas[1][1] && canvas[0][2] == canvas[2][0]) {
+        winner = canvas[0][2];
+    }else if (canvas[0][0] == canvas[1][0] && canvas[0][0] == canvas[2][0]){
+        winner = canvas[0][0];
+    }else if (canvas[0][1] == canvas[1][1] && canvas[0][1] == canvas[2][1]){
+        winner = canvas[0][1];
+    }else if (canvas[0][2] == canvas[1][2] && canvas[0][2] == canvas[2][2]){
+        winner = canvas[0][2];
+    } else {
+        winner = space;
+    }
+    // printf("\n winner: %c\n", winner);
+}
+
+int useGameOver () {
+    printBoard();
+    if (winner==PLAYER) {
+        printf("\nYOU WON :)");
+        wins++;
+    }
+    else if (winner == AI) {
+        printf("\nYOU LOOSE :(");
+    } else if (winner == space) {
+        printf("\nIT'S A TIE :|");
+    }
+    printf("\nDo you want to play again (y/n)?");
+    char resp[3];
+    scanf("%s",&resp);
+    if (tolower(resp[0])=='y') {
+        printf("\nOkay... Starting new game\n");
+        return main();
+    } else {
+        printf("\nThanks for playing :)");
+        printf("\nYou WON %d of %d plays %s", wins, plays, !wins ? ":(" : ":)");
+        exit(0);
+    }
+    return 0;
+}
